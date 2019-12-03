@@ -2,6 +2,7 @@ import debounce from 'lodash/debounce'
 import { Platform } from 'react-native'
 import { NowPlayingItem } from '../lib/NowPlayingItem'
 import { PV } from '../resources'
+import { removeDownloadedPodcastEpisode } from '../state/actions/downloads'
 import { setNowPlayingItem } from '../state/actions/player'
 import { addOrUpdateHistoryItem, checkIfPlayingFromHistory } from './history'
 import {
@@ -74,12 +75,13 @@ const syncNowPlayingItemWithTrack = async () => {
       currentTrackId
     )
 
-    if (currentNowPlayingItem)
+    if (currentNowPlayingItem) {
       await handleSyncNowPlayingItem(
         currentTrackId,
         currentNowPlayingItem,
         isSecondTime
       )
+    }
   }
 
   setTimeout(sync, 1000)
@@ -170,6 +172,13 @@ module.exports = async () => {
     syncNowPlayingItemWithTrack()
   })
 
+  PVTrackPlayer.addEventListener('playback-track-ended', async (x: any) => {
+    console.log('playback-track-ended', x)
+    if (x.track) {
+      removeDownloadedPodcastEpisode(x.track)
+    }
+  })
+
   PVTrackPlayer.addEventListener('playback-error', (x: any) => {
     console.log('playback-error', x)
     // TODO: post error to our logs!
@@ -197,8 +206,9 @@ module.exports = async () => {
   })
 
   PVTrackPlayer.addEventListener('remote-seek', async (data) => {
-    if (data.position || data.position >= 0)
+    if (data.position || data.position >= 0) {
       PVTrackPlayer.seekTo(Math.floor(data.position))
+    }
     updateUserPlaybackPosition()
   })
 
